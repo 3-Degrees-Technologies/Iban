@@ -1,0 +1,16 @@
+{
+  "ticket_id": "IBA-85",
+  "title": "Retrieved from Slack",
+  "description": "## Slack Messages",
+  "status": "in_progress",
+  "started_at": "2025-11-07T16:40:41Z",
+  "branch": "feature/IBA-85-retrieved-from-slack",
+  "domain": "tickets",
+  "domain_folder": "./tickets",
+  "ticket_doc_path": "./tickets/IBA-85-retrieved-from-slack.md",
+  "ticket_original_path": ".spectrum/tmp/discovered-ticket-details.md",
+  "pr_url": null,
+  "tdd_cycles": [],
+  "files_modified": [],
+  "commit_history": []
+}
