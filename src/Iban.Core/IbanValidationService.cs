@@ -26,19 +26,6 @@ public class IbanValidationService : IIbanValidationService
     }
 
     /// <inheritdoc />
-    public bool IsValid(string? iban)
-    {
-        if (string.IsNullOrWhiteSpace(iban))
-        {
-            return false;
-        }
-
-        var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
-        var result = _validator.Validate(normalized);
-        return result.IsValid;
-    }
-
-    /// <inheritdoc />
     public ValidationResult Validate(string? iban)
     {
         if (string.IsNullOrWhiteSpace(iban))
@@ -57,6 +44,19 @@ public class IbanValidationService : IIbanValidationService
         }
 
         return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural);
+    }
+
+    /// <inheritdoc />
+    public bool IsValid(string? iban)
+    {
+        if (string.IsNullOrWhiteSpace(iban))
+        {
+            return false;
+        }
+
+        var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
+        var result = _validator.Validate(normalized);
+        return result.IsValid;
     }
 
     /// <inheritdoc />
