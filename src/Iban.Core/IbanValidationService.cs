@@ -2,15 +2,23 @@ using IbanNet;
 
 namespace Iban.Core;
 
+/// <summary>
+/// Implementation of IBAN validation service using the IbanNet library.
+/// Provides validation, detailed validation results, and parsing capabilities for IBANs.
+/// </summary>
 public class IbanValidationService : IIbanValidationService
 {
     private readonly IbanValidator _validator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IbanValidationService"/> class.
+    /// </summary>
     public IbanValidationService()
     {
         _validator = new IbanValidator();
     }
 
+    /// <inheritdoc />
     public bool IsValid(string? iban)
     {
         if (string.IsNullOrWhiteSpace(iban))
@@ -23,6 +31,7 @@ public class IbanValidationService : IIbanValidationService
         return result.IsValid;
     }
 
+    /// <inheritdoc />
     public ValidationResult Validate(string? iban)
     {
         if (string.IsNullOrWhiteSpace(iban))
@@ -44,6 +53,7 @@ public class IbanValidationService : IIbanValidationService
         };
     }
 
+    /// <inheritdoc />
     public bool TryParse(string? iban, out ParsedIban? parsedIban)
     {
         parsedIban = null;
