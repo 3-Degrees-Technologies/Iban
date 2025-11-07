@@ -65,7 +65,7 @@ public class IbanValidationService : IIbanValidationService
 
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
         var result = _validator.Validate(normalized);
-        
+
         if (result.IsValid && normalized.Length >= 2)
         {
             parsedIban = new ParsedIban
