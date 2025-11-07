@@ -26,4 +26,13 @@ public interface IIbanValidationService
     /// <param name="parsedIban">When this method returns, contains the parsed IBAN if successful; otherwise, null.</param>
     /// <returns>True if the IBAN was successfully parsed; otherwise, false.</returns>
     bool TryParse(string? iban, out ParsedIban? parsedIban);
+
+    /// <summary>
+    /// Validates the provided IBAN with account-level validation where supported.
+    /// Performs structural validation plus country-specific account number checks (e.g., UK modulus checking, BBAN validation).
+    /// Falls back to structural validation for countries without account-level support.
+    /// </summary>
+    /// <param name="iban">The IBAN string to validate. Can include spaces and be in any case.</param>
+    /// <returns>A ValidationResult containing the validation status and any error messages.</returns>
+    ValidationResult ValidateWithAccountCheck(string? iban);
 }

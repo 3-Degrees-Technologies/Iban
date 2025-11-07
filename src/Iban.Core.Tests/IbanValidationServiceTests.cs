@@ -95,4 +95,32 @@ public class IbanValidationServiceTests
         Assert.That(failureResult, Is.False, "Invalid IBAN should fail to parse");
         Assert.That(failedIban, Is.Null, "Failed parse should return null");
     }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldEnforceUkModulusCheckingCorrectly()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act & Assert - Valid UK IBANs with correct modulus
+        var validResult1 = service.ValidateWithAccountCheck("GB33BUKB20201555555555");
+        Assert.That(validResult1.IsValid, Is.True, "Valid UK IBAN with correct modulus should pass");
+        Assert.That(validResult1.ErrorCode, Is.Null, "Valid result should have no error code");
+
+        var validResult2 = service.ValidateWithAccountCheck("GB29NWBK60161331926819");
+        Assert.That(validResult2.IsValid, Is.True, "Second valid UK IBAN should pass");
+        Assert.That(validResult2.ErrorCode, Is.Null, "Valid result should have no error code");
+
+        // Act & Assert - Invalid UK IBANs failing modulus check (from IBAN.com test cases)
+        var invalidResult1 = service.ValidateWithAccountCheck("GB02BARC20201530093451");
+        Assert.That(invalidResult1.IsValid, Is.False, "UK IBAN with invalid modulus should fail");
+        Assert.That(invalidResult1.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"), "Should return UK modulus error code");
+        Assert.That(invalidResult1.ErrorMessage, Is.Not.Null.And.Not.Empty, "Should provide error message");
+
+        var invalidResult2 = service.ValidateWithAccountCheck("GB68CITI18500483515538");
+        Assert.That(invalidResult2.IsValid, Is.False, "Second UK IBAN with invalid modulus should fail");
+        Assert.That(invalidResult2.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"), "Should return UK modulus error code");
+
+        // Mixed true/false results force real UK modulus checking logic
+    }
 }

@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="IbanNet" Version="5.19.0" />
+    <PackageReference Include="IbanNet.Extensions.Bban" Version="2.0.0" />
+    <PackageReference Include="ModulusChecker.NetCore" Version="2.5.0" />
   </ItemGroup>
 
 </Project>
