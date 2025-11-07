@@ -1,0 +1,98 @@
+using NUnit.Framework;
+
+namespace Iban.Core.Tests;
+
+[TestFixture]
+public class IbanValidationServiceTests
+{
+    [Test]
+    public void IsValid_ShouldValidateIbansCorrectly()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act & Assert - Valid IBANs from different countries
+        Assert.That(service.IsValid("NL91ABNA0417164300"), Is.True, "Valid Netherlands IBAN should return true");
+        Assert.That(service.IsValid("GB82WEST12345698765432"), Is.True, "Valid UK IBAN should return true");
+        Assert.That(service.IsValid("DE89370400440532013000"), Is.True, "Valid Germany IBAN should return true");
+
+        // Act & Assert - Invalid IBANs (bad checksum)
+        Assert.That(service.IsValid("NL00ABNA0417164300"), Is.False, "Invalid checksum should return false");
+        Assert.That(service.IsValid("GB00WEST12345698765432"), Is.False, "Invalid checksum should return false");
+
+        // Act & Assert - Invalid formats
+        Assert.That(service.IsValid(""), Is.False, "Empty string should return false");
+        Assert.That(service.IsValid("   "), Is.False, "Whitespace should return false");
+        Assert.That(service.IsValid("INVALID"), Is.False, "Invalid format should return false");
+        Assert.That(service.IsValid("XX99123456789"), Is.False, "Invalid country code should return false");
+
+        // Mixed results force real validation logic, prevent gaming
+    }
+
+    [Test]
+    public void IsValid_ShouldHandleNullInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act & Assert
+        Assert.That(service.IsValid(null), Is.False, "Null input should return false");
+    }
+
+    [Test]
+    public void IsValid_ShouldNormalizeInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act & Assert - Input normalization (spaces, lowercase)
+        Assert.That(service.IsValid("NL91 ABNA 0417 1643 00"), Is.True, "IBAN with spaces should be normalized and valid");
+        Assert.That(service.IsValid("nl91abna0417164300"), Is.True, "Lowercase IBAN should be normalized and valid");
+        Assert.That(service.IsValid("  NL91ABNA0417164300  "), Is.True, "IBAN with surrounding whitespace should be trimmed and valid");
+
+        // Mixed normalization cases prevent hardcoding
+    }
+
+    [Test]
+    public void Validate_ShouldReturnDetailedValidationResult()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - Valid IBAN
+        var validResult = service.Validate("NL91ABNA0417164300");
+
+        // Assert
+        Assert.That(validResult.IsValid, Is.True, "Valid IBAN should have IsValid=true");
+        Assert.That(validResult.ErrorMessage, Is.Null.Or.Empty, "Valid IBAN should have no error message");
+
+        // Act - Invalid IBAN
+        var invalidResult = service.Validate("NL00ABNA0417164300");
+
+        // Assert
+        Assert.That(invalidResult.IsValid, Is.False, "Invalid IBAN should have IsValid=false");
+        Assert.That(invalidResult.ErrorMessage, Is.Not.Null.And.Not.Empty, "Invalid IBAN should have error message");
+    }
+
+    [Test]
+    public void TryParse_ShouldParseValidIbanSuccessfully()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var successResult = service.TryParse("NL91ABNA0417164300", out var parsedIban);
+
+        // Assert
+        Assert.That(successResult, Is.True, "Valid IBAN should parse successfully");
+        Assert.That(parsedIban, Is.Not.Null, "Parsed IBAN should not be null");
+        Assert.That(parsedIban.Country, Is.EqualTo("NL"), "Country code should be NL");
+
+        // Act - Invalid IBAN
+        var failureResult = service.TryParse("INVALID", out var failedIban);
+
+        // Assert
+        Assert.That(failureResult, Is.False, "Invalid IBAN should fail to parse");
+        Assert.That(failedIban, Is.Null, "Failed parse should return null");
+    }
+}
