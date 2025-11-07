@@ -49,12 +49,14 @@ public class IbanValidationService : IIbanValidationService
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
         var result = _validator.Validate(normalized);
 
+        var country = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
+
         if (result.IsValid)
         {
-            return ValidationResult.Success();
+            return ValidationResult.Success(country, ValidationLevel.Structural);
         }
 
-        return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed");
+        return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural);
     }
 
     /// <inheritdoc />
@@ -70,11 +72,14 @@ public class IbanValidationService : IIbanValidationService
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
         var result = _validator.Validate(normalized);
 
-        if (result.IsValid && normalized.Length >= 2)
+        if (result.IsValid && normalized.Length >= 4)
         {
             parsedIban = new ParsedIban
             {
-                Country = normalized.Substring(0, 2)
+                Country = normalized.Substring(0, 2),
+                CheckDigits = normalized.Substring(2, 2),
+                Bban = normalized.Substring(4),
+                NormalizedIban = normalized
             };
             return true;
         }
@@ -96,12 +101,13 @@ public class IbanValidationService : IIbanValidationService
         // Basic structural validation using simple validator
         var basicValidator = new IbanValidator();
         var structuralResult = basicValidator.Validate(normalized);
+        
+        var countryCode = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
+        
         if (!structuralResult.IsValid)
         {
-            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed");
+            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural);
         }
-
-        var countryCode = normalized.Substring(0, 2);
 
         // Perform UK modulus checking for GB IBANs
         if (countryCode == "GB")
@@ -117,8 +123,12 @@ public class IbanValidationService : IIbanValidationService
             {
                 return ValidationResult.Failed(
                     "ERR_ACCOUNT_INVALID_UK_MODULUS",
-                    $"UK IBAN failed modulus checking for sort code {sortCode} and account number {accountNumber}");
+                    $"UK IBAN failed modulus checking for sort code {sortCode} and account number {accountNumber}",
+                    countryCode,
+                    ValidationLevel.AccountLevel);
             }
+            
+            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
         }
 
         // Perform BBAN validation for supported countries (FR, IT, PT, NO, MC, MR, BA, SM)
@@ -131,11 +141,15 @@ public class IbanValidationService : IIbanValidationService
             {
                 return ValidationResult.Failed(
                     "ERR_ACCOUNT_INVALID_BBAN",
-                    $"IBAN failed BBAN national check digit validation: {bbanResult.Error?.ErrorMessage ?? "Unknown error"}");
+                    $"IBAN failed BBAN national check digit validation: {bbanResult.Error?.ErrorMessage ?? "Unknown error"}",
+                    countryCode,
+                    ValidationLevel.AccountLevel);
             }
+            
+            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
         }
 
-        // For other countries or successful checks, return success
-        return ValidationResult.Success();
+        // For other countries, return structural validation success
+        return ValidationResult.Success(countryCode, ValidationLevel.Structural);
     }
 }
