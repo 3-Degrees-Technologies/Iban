@@ -86,7 +86,7 @@ public class IbanValidationServiceTests
         // Assert
         Assert.That(successResult, Is.True, "Valid IBAN should parse successfully");
         Assert.That(parsedIban, Is.Not.Null, "Parsed IBAN should not be null");
-        Assert.That(parsedIban.Country, Is.EqualTo("NL"), "Country code should be NL");
+        Assert.That(parsedIban!.Value.Country, Is.EqualTo("NL"), "Country code should be NL");
 
         // Act - Invalid IBAN
         var failureResult = service.TryParse("INVALID", out var failedIban);
@@ -94,5 +94,140 @@ public class IbanValidationServiceTests
         // Assert
         Assert.That(failureResult, Is.False, "Invalid IBAN should fail to parse");
         Assert.That(failedIban, Is.Null, "Failed parse should return null");
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldEnforceUkModulusCheckingCorrectly()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act & Assert - Valid UK IBANs with correct modulus
+        var validResult1 = service.ValidateWithAccountCheck("GB33BUKB20201555555555");
+        Assert.That(validResult1.IsValid, Is.True, "Valid UK IBAN with correct modulus should pass");
+        Assert.That(validResult1.ErrorCode, Is.Null, "Valid result should have no error code");
+
+        var validResult2 = service.ValidateWithAccountCheck("GB29NWBK60161331926819");
+        Assert.That(validResult2.IsValid, Is.True, "Second valid UK IBAN should pass");
+        Assert.That(validResult2.ErrorCode, Is.Null, "Valid result should have no error code");
+
+        // Act & Assert - Invalid UK IBANs failing modulus check (from IBAN.com test cases)
+        var invalidResult1 = service.ValidateWithAccountCheck("GB02BARC20201530093451");
+        Assert.That(invalidResult1.IsValid, Is.False, "UK IBAN with invalid modulus should fail");
+        Assert.That(invalidResult1.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"), "Should return UK modulus error code");
+        Assert.That(invalidResult1.ErrorMessage, Is.Not.Null.And.Not.Empty, "Should provide error message");
+
+        var invalidResult2 = service.ValidateWithAccountCheck("GB68CITI18500483515538");
+        Assert.That(invalidResult2.IsValid, Is.False, "Second UK IBAN with invalid modulus should fail");
+        Assert.That(invalidResult2.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"), "Should return UK modulus error code");
+
+        // Mixed true/false results force real UK modulus checking logic
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldValidateBbanCheckDigitsForSupportedCountries()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // This test ensures BBAN (national check digit) validation works for supported countries
+        // Currently only tests the happy path - GREEN phase will add actual BBAN failure cases
+        
+        // France - RIB check validation
+        var resultFr = service.ValidateWithAccountCheck("FR1420041010050500013M02606");
+        Assert.That(resultFr.IsValid, Is.True, "Valid FR IBAN should pass");
+        
+        // Italy - CIN check validation  
+        var resultIt = service.ValidateWithAccountCheck("IT60X0542811101000000123456");
+        Assert.That(resultIt.IsValid, Is.True, "Valid IT IBAN should pass");
+        
+        // Portugal - NIB check validation
+        var resultPt = service.ValidateWithAccountCheck("PT50000201231234567890154");
+        Assert.That(resultPt.IsValid, Is.True, "Valid PT IBAN should pass");
+        
+        // Norway - MOD-11 check validation
+        var resultNo = service.ValidateWithAccountCheck("NO9386011117947");
+        Assert.That(resultNo.IsValid, Is.True, "Valid NO IBAN should pass");
+
+        // Test one invalid case to force RED state
+        // This IBAN has correct structure but invalid BBAN check digit (invalid RIB key)
+        // Without BBAN validation implementation, this will incorrectly pass
+        var invalidBban = service.ValidateWithAccountCheck("FR2520041010050500013M02699");
+        Assert.That(invalidBban.IsValid, Is.False, "IBAN with invalid BBAN check should fail");
+        Assert.That(invalidBban.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_BBAN"), "Should return BBAN error code");
+    }
+
+    [Test]
+    public void TryParse_ShouldPopulateAllIbanComponents()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.TryParse("GB82 WEST 1234 5698 7654 32", out var parsed);
+
+        // Assert
+        Assert.That(result, Is.True, "Valid IBAN should parse successfully");
+        Assert.That(parsed, Is.Not.Null);
+        Assert.That(parsed!.Value.Country, Is.EqualTo("GB"), "Country should be GB");
+        Assert.That(parsed!.Value.CheckDigits, Is.EqualTo("82"), "Check digits should be 82");
+        Assert.That(parsed!.Value.Bban, Is.EqualTo("WEST12345698765432"), "BBAN should be the account-specific part");
+        Assert.That(parsed!.Value.NormalizedIban, Is.EqualTo("GB82WEST12345698765432"), "Normalized IBAN should have no spaces");
+    }
+
+    [Test]
+    public void ValidationResult_ShouldIncludeCountryAndLevel()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - Account-level validation for UK
+        var ukResult = service.ValidateWithAccountCheck("GB33BUKB20201555555555");
+
+        // Assert
+        Assert.That(ukResult.Country, Is.EqualTo("GB"), "Should include country code");
+        Assert.That(ukResult.Level, Is.EqualTo(ValidationLevel.AccountLevel), "UK validation should be account-level");
+        Assert.That(ukResult.IsValid, Is.True);
+
+        // Act - Account-level validation for FR
+        var frResult = service.ValidateWithAccountCheck("FR1420041010050500013M02606");
+
+        // Assert
+        Assert.That(frResult.Country, Is.EqualTo("FR"), "Should include country code");
+        Assert.That(frResult.Level, Is.EqualTo(ValidationLevel.AccountLevel), "FR validation should be account-level");
+        Assert.That(frResult.IsValid, Is.True);
+
+        // Act - Structural-only validation for unsupported country
+        var deResult = service.ValidateWithAccountCheck("DE89370400440532013000");
+
+        // Assert
+        Assert.That(deResult.Country, Is.EqualTo("DE"), "Should include country code");
+        Assert.That(deResult.Level, Is.EqualTo(ValidationLevel.Structural), "DE validation should be structural-only");
+        Assert.That(deResult.IsValid, Is.True, "Structural validation should pass");
+    }
+
+    [Test]
+    public void ValidationResult_ShouldIncludeCountryOnFailure()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - Failed UK modulus check
+        var ukFailed = service.ValidateWithAccountCheck("GB02BARC20201530093451");
+
+        // Assert
+        Assert.That(ukFailed.IsValid, Is.False);
+        Assert.That(ukFailed.Country, Is.EqualTo("GB"), "Failed result should include country");
+        Assert.That(ukFailed.Level, Is.EqualTo(ValidationLevel.AccountLevel), "Failure occurred at account level");
+        Assert.That(ukFailed.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"));
+
+        // Act - Failed BBAN validation
+        var frFailed = service.ValidateWithAccountCheck("FR2520041010050500013M02699");
+
+        // Assert
+        Assert.That(frFailed.IsValid, Is.False);
+        Assert.That(frFailed.Country, Is.EqualTo("FR"), "Failed result should include country");
+        Assert.That(frFailed.Level, Is.EqualTo(ValidationLevel.AccountLevel), "Failure occurred at account level");
+        Assert.That(frFailed.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_BBAN"));
     }
 }

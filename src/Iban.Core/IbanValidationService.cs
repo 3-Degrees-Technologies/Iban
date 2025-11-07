@@ -1,4 +1,6 @@
 using IbanNet;
+using IbanNet.Extensions.Bban.Validation.Rules;
+using ModulusChecking;
 
 namespace Iban.Core;
 
@@ -9,13 +11,39 @@ namespace Iban.Core;
 public class IbanValidationService : IIbanValidationService
 {
     private readonly IbanValidator _validator;
+    private readonly ModulusChecker _modulusChecker;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IbanValidationService"/> class.
     /// </summary>
     public IbanValidationService()
     {
-        _validator = new IbanValidator();
+        // Configure validator with BBAN national check digit validation
+        var options = new IbanValidatorOptions();
+        options.Rules.Add(new HasValidNationalCheckDigitsRule());
+        _validator = new IbanValidator(options);
+        _modulusChecker = new ModulusChecker();
+    }
+
+    /// <inheritdoc />
+    public ValidationResult Validate(string? iban)
+    {
+        if (string.IsNullOrWhiteSpace(iban))
+        {
+            return ValidationResult.Failed("ERR_NULL_OR_EMPTY", "IBAN cannot be null or empty");
+        }
+
+        var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
+        var result = _validator.Validate(normalized);
+
+        var country = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
+
+        if (result.IsValid)
+        {
+            return ValidationResult.Success(country, ValidationLevel.Structural);
+        }
+
+        return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural);
     }
 
     /// <inheritdoc />
@@ -32,28 +60,6 @@ public class IbanValidationService : IIbanValidationService
     }
 
     /// <inheritdoc />
-    public ValidationResult Validate(string? iban)
-    {
-        if (string.IsNullOrWhiteSpace(iban))
-        {
-            return new ValidationResult
-            {
-                IsValid = false,
-                ErrorMessage = "IBAN cannot be null or empty"
-            };
-        }
-
-        var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
-        var result = _validator.Validate(normalized);
-
-        return new ValidationResult
-        {
-            IsValid = result.IsValid,
-            ErrorMessage = result.IsValid ? null : result.Error?.ErrorMessage
-        };
-    }
-
-    /// <inheritdoc />
     public bool TryParse(string? iban, out ParsedIban? parsedIban)
     {
         parsedIban = null;
@@ -66,15 +72,84 @@ public class IbanValidationService : IIbanValidationService
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
         var result = _validator.Validate(normalized);
 
-        if (result.IsValid && normalized.Length >= 2)
+        if (result.IsValid && normalized.Length >= 4)
         {
             parsedIban = new ParsedIban
             {
-                Country = normalized.Substring(0, 2)
+                Country = normalized.Substring(0, 2),
+                CheckDigits = normalized.Substring(2, 2),
+                Bban = normalized.Substring(4),
+                NormalizedIban = normalized
             };
             return true;
         }
 
         return false;
+    }
+
+    /// <inheritdoc />
+    public ValidationResult ValidateWithAccountCheck(string? iban)
+    {
+        // First perform structural validation (without BBAN rule)
+        if (string.IsNullOrWhiteSpace(iban))
+        {
+            return ValidationResult.Failed("ERR_NULL_OR_EMPTY", "IBAN cannot be null or empty");
+        }
+
+        var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
+        
+        // Basic structural validation using simple validator
+        var basicValidator = new IbanValidator();
+        var structuralResult = basicValidator.Validate(normalized);
+        
+        var countryCode = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
+        
+        if (!structuralResult.IsValid)
+        {
+            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural);
+        }
+
+        // Perform UK modulus checking for GB IBANs
+        if (countryCode == "GB")
+        {
+            // GB IBAN structure: GBkk BBBB SSSSSS AAAAAAAA
+            // Where kk=check digits, BBBB=bank code, SSSSSS=sort code, AAAAAAAA=account number
+            // Extract sort code (positions 8-13) and account number (positions 14-21)
+            var sortCode = normalized.Substring(8, 6);
+            var accountNumber = normalized.Substring(14, 8);
+
+            var modulusCheckResult = _modulusChecker.CheckBankAccount(sortCode, accountNumber);
+            if (!modulusCheckResult)
+            {
+                return ValidationResult.Failed(
+                    "ERR_ACCOUNT_INVALID_UK_MODULUS",
+                    $"UK IBAN failed modulus checking for sort code {sortCode} and account number {accountNumber}",
+                    countryCode,
+                    ValidationLevel.AccountLevel);
+            }
+            
+            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
+        }
+
+        // Perform BBAN validation for supported countries (FR, IT, PT, NO, MC, MR, BA, SM)
+        string[] bbanSupportedCountries = { "FR", "IT", "PT", "NO", "MC", "MR", "BA", "SM" };
+        if (Array.Exists(bbanSupportedCountries, c => c == countryCode))
+        {
+            // Use validator with BBAN rule
+            var bbanResult = _validator.Validate(normalized);
+            if (!bbanResult.IsValid)
+            {
+                return ValidationResult.Failed(
+                    "ERR_ACCOUNT_INVALID_BBAN",
+                    $"IBAN failed BBAN national check digit validation: {bbanResult.Error?.ErrorMessage ?? "Unknown error"}",
+                    countryCode,
+                    ValidationLevel.AccountLevel);
+            }
+            
+            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
+        }
+
+        // For other countries, return structural validation success
+        return ValidationResult.Success(countryCode, ValidationLevel.Structural);
     }
 }
