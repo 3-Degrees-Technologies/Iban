@@ -123,4 +123,37 @@ public class IbanValidationServiceTests
 
         // Mixed true/false results force real UK modulus checking logic
     }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldValidateBbanCheckDigitsForSupportedCountries()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // This test ensures BBAN (national check digit) validation works for supported countries
+        // Currently only tests the happy path - GREEN phase will add actual BBAN failure cases
+        
+        // France - RIB check validation
+        var resultFr = service.ValidateWithAccountCheck("FR1420041010050500013M02606");
+        Assert.That(resultFr.IsValid, Is.True, "Valid FR IBAN should pass");
+        
+        // Italy - CIN check validation  
+        var resultIt = service.ValidateWithAccountCheck("IT60X0542811101000000123456");
+        Assert.That(resultIt.IsValid, Is.True, "Valid IT IBAN should pass");
+        
+        // Portugal - NIB check validation
+        var resultPt = service.ValidateWithAccountCheck("PT50000201231234567890154");
+        Assert.That(resultPt.IsValid, Is.True, "Valid PT IBAN should pass");
+        
+        // Norway - MOD-11 check validation
+        var resultNo = service.ValidateWithAccountCheck("NO9386011117947");
+        Assert.That(resultNo.IsValid, Is.True, "Valid NO IBAN should pass");
+
+        // Test one invalid case to force RED state
+        // This IBAN has correct structure but invalid BBAN check digit (invalid RIB key)
+        // Without BBAN validation implementation, this will incorrectly pass
+        var invalidBban = service.ValidateWithAccountCheck("FR2520041010050500013M02699");
+        Assert.That(invalidBban.IsValid, Is.False, "IBAN with invalid BBAN check should fail");
+        Assert.That(invalidBban.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_BBAN"), "Should return BBAN error code");
+    }
 }

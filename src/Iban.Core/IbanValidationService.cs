@@ -1,4 +1,5 @@
 using IbanNet;
+using IbanNet.Extensions.Bban.Validation.Rules;
 using ModulusChecking;
 
 namespace Iban.Core;
@@ -17,7 +18,10 @@ public class IbanValidationService : IIbanValidationService
     /// </summary>
     public IbanValidationService()
     {
-        _validator = new IbanValidator();
+        // Configure validator with BBAN national check digit validation
+        var options = new IbanValidatorOptions();
+        options.Rules.Add(new HasValidNationalCheckDigitsRule());
+        _validator = new IbanValidator(options);
         _modulusChecker = new ModulusChecker();
     }
 
@@ -81,14 +85,22 @@ public class IbanValidationService : IIbanValidationService
     /// <inheritdoc />
     public ValidationResult ValidateWithAccountCheck(string? iban)
     {
-        // First perform structural validation
-        var structuralResult = Validate(iban);
-        if (!structuralResult.IsValid)
+        // First perform structural validation (without BBAN rule)
+        if (string.IsNullOrWhiteSpace(iban))
         {
-            return structuralResult;
+            return ValidationResult.Failed("ERR_NULL_OR_EMPTY", "IBAN cannot be null or empty");
         }
 
-        var normalized = iban!.Replace(" ", "").Trim().ToUpperInvariant();
+        var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
+        
+        // Basic structural validation using simple validator
+        var basicValidator = new IbanValidator();
+        var structuralResult = basicValidator.Validate(normalized);
+        if (!structuralResult.IsValid)
+        {
+            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed");
+        }
+
         var countryCode = normalized.Substring(0, 2);
 
         // Perform UK modulus checking for GB IBANs
@@ -106,6 +118,20 @@ public class IbanValidationService : IIbanValidationService
                 return ValidationResult.Failed(
                     "ERR_ACCOUNT_INVALID_UK_MODULUS",
                     $"UK IBAN failed modulus checking for sort code {sortCode} and account number {accountNumber}");
+            }
+        }
+
+        // Perform BBAN validation for supported countries (FR, IT, PT, NO, MC, MR, BA, SM)
+        string[] bbanSupportedCountries = { "FR", "IT", "PT", "NO", "MC", "MR", "BA", "SM" };
+        if (Array.Exists(bbanSupportedCountries, c => c == countryCode))
+        {
+            // Use validator with BBAN rule
+            var bbanResult = _validator.Validate(normalized);
+            if (!bbanResult.IsValid)
+            {
+                return ValidationResult.Failed(
+                    "ERR_ACCOUNT_INVALID_BBAN",
+                    $"IBAN failed BBAN national check digit validation: {bbanResult.Error?.ErrorMessage ?? "Unknown error"}");
             }
         }
 

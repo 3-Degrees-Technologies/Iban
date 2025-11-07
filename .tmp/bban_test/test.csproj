@@ -1,15 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="IbanNet" Version="5.19.0" />
     <PackageReference Include="IbanNet.Extensions.Bban" Version="1.0.0" />
-    <PackageReference Include="ModulusChecker.NetCore" Version="2.5.0" />
+    <PackageReference Include="IbanNet.FluentValidation" Version="5.19.0" />
   </ItemGroup>
-
 </Project>
