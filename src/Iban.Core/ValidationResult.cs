@@ -3,12 +3,12 @@ namespace Iban.Core;
 /// <summary>
 /// Represents the result of an IBAN validation operation.
 /// </summary>
-public class ValidationResult
+public readonly record struct ValidationResult
 {
     /// <summary>
     /// Gets whether the IBAN is valid.
     /// </summary>
-    public bool IsValid { get; init; }
+    public required bool IsValid { get; init; }
 
     /// <summary>
     /// Gets the error code if validation failed; otherwise, null.

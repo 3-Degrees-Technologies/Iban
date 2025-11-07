@@ -86,7 +86,7 @@ public class IbanValidationServiceTests
         // Assert
         Assert.That(successResult, Is.True, "Valid IBAN should parse successfully");
         Assert.That(parsedIban, Is.Not.Null, "Parsed IBAN should not be null");
-        Assert.That(parsedIban.Country, Is.EqualTo("NL"), "Country code should be NL");
+        Assert.That(parsedIban!.Value.Country, Is.EqualTo("NL"), "Country code should be NL");
 
         // Act - Invalid IBAN
         var failureResult = service.TryParse("INVALID", out var failedIban);
