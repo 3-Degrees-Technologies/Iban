@@ -275,4 +275,232 @@ public class IbanValidationServiceTests
         Assert.That(parseResult, Is.False, "Null input should return false");
         Assert.That(parsed, Is.Null, "Null input should not produce parsed IBAN");
     }
+
+    #region Input Validation Error Code Tests
+
+    [Test]
+    public void Validate_ShouldReturnERR_INPUT_NULL_ForNullInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.Validate(null);
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Null input should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_NULL), "Should return ERR_INPUT_NULL");
+        Assert.That(result.ErrorMessage, Is.EqualTo("IBAN cannot be null"), "Should have correct error message");
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldReturnERR_INPUT_NULL_ForNullInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.ValidateWithAccountCheck(null);
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Null input should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_NULL), "Should return ERR_INPUT_NULL");
+        Assert.That(result.ErrorMessage, Is.EqualTo("IBAN cannot be null"), "Should have correct error message");
+    }
+
+    [Test]
+    public void Validate_ShouldReturnERR_INPUT_EMPTY_ForEmptyString()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.Validate("");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Empty string should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_EMPTY), "Should return ERR_INPUT_EMPTY");
+        Assert.That(result.ErrorMessage, Is.EqualTo("IBAN cannot be empty"), "Should have correct error message");
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldReturnERR_INPUT_EMPTY_ForEmptyString()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.ValidateWithAccountCheck("");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Empty string should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_EMPTY), "Should return ERR_INPUT_EMPTY");
+        Assert.That(result.ErrorMessage, Is.EqualTo("IBAN cannot be empty"), "Should have correct error message");
+    }
+
+    [Test]
+    public void Validate_ShouldReturnERR_INPUT_WHITESPACE_ForWhitespaceOnlyString()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.Validate("   ");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Whitespace-only string should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_WHITESPACE), "Should return ERR_INPUT_WHITESPACE");
+        Assert.That(result.ErrorMessage, Is.EqualTo("IBAN cannot be whitespace only"), "Should have correct error message");
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldReturnERR_INPUT_WHITESPACE_ForWhitespaceOnlyString()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.ValidateWithAccountCheck("   ");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Whitespace-only string should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_WHITESPACE), "Should return ERR_INPUT_WHITESPACE");
+        Assert.That(result.ErrorMessage, Is.EqualTo("IBAN cannot be whitespace only"), "Should have correct error message");
+    }
+
+    [Test]
+    public void Validate_ShouldReturnERR_INPUT_WHITESPACE_ForTabsAndNewlines()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.Validate("\t\n\r");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Tabs/newlines should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_INPUT_WHITESPACE), "Should return ERR_INPUT_WHITESPACE");
+    }
+
+    [Test]
+    public void Validate_ShouldReturnERR_FORMAT_INVALID_ForInvalidFormat()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - Invalid format (too short)
+        var result1 = service.Validate("INVALID");
+
+        // Assert
+        Assert.That(result1.IsValid, Is.False, "Invalid format should be invalid");
+        Assert.That(result1.ErrorCode, Is.EqualTo(IbanValidationError.ERR_FORMAT_INVALID), "Should return ERR_FORMAT_INVALID");
+        Assert.That(result1.ErrorMessage, Is.Not.Null.And.Not.Empty, "Should have error message");
+
+        // Act - Invalid country code
+        var result2 = service.Validate("XX99123456789");
+
+        // Assert
+        Assert.That(result2.IsValid, Is.False, "Invalid country code should be invalid");
+        Assert.That(result2.ErrorCode, Is.EqualTo(IbanValidationError.ERR_FORMAT_INVALID), "Should return ERR_FORMAT_INVALID for invalid country");
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldReturnERR_FORMAT_INVALID_ForInvalidFormat()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - Invalid format (bad checksum)
+        var result = service.ValidateWithAccountCheck("GB00WEST12345698765432");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Invalid checksum should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_FORMAT_INVALID), "Should return ERR_FORMAT_INVALID");
+        Assert.That(result.ErrorMessage, Is.Not.Null.And.Not.Empty, "Should have error message");
+    }
+
+    #endregion
+
+    #region SupportedLevel Property Tests
+
+    [Test]
+    public void Validate_ShouldSetSupportedLevel_ForGBCountry()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - Valid GB IBAN
+        var validResult = service.Validate("GB82WEST12345698765432");
+
+        // Assert
+        Assert.That(validResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "GB should support AccountLevel validation");
+        Assert.That(validResult.Level, Is.EqualTo(ValidationLevel.Structural), "Validate() performs Structural validation");
+
+        // Act - Invalid GB IBAN
+        var invalidResult = service.Validate("GB00WEST12345698765432");
+
+        // Assert
+        Assert.That(invalidResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "GB should support AccountLevel even when invalid");
+    }
+
+    [Test]
+    public void Validate_ShouldSetSupportedLevel_ForBBANSupportedCountries()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Test FR (France) - BBAN supported
+        var frResult = service.Validate("FR1420041010050500013M02606");
+        Assert.That(frResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "FR should support AccountLevel");
+
+        // Test IT (Italy) - BBAN supported
+        var itResult = service.Validate("IT60X0542811101000000123456");
+        Assert.That(itResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "IT should support AccountLevel");
+
+        // Test PT (Portugal) - BBAN supported
+        var ptResult = service.Validate("PT50000201231234567890154");
+        Assert.That(ptResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "PT should support AccountLevel");
+
+        // Test NO (Norway) - BBAN supported
+        var noResult = service.Validate("NO9386011117947");
+        Assert.That(noResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "NO should support AccountLevel");
+    }
+
+    [Test]
+    public void Validate_ShouldSetSupportedLevel_ForStructuralOnlyCountries()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Test DE (Germany) - Structural only
+        var deResult = service.Validate("DE89370400440532013000");
+        Assert.That(deResult.SupportedLevel, Is.EqualTo(ValidationLevel.Structural), "DE should support Structural only");
+
+        // Test NL (Netherlands) - Structural only
+        var nlResult = service.Validate("NL91ABNA0417164300");
+        Assert.That(nlResult.SupportedLevel, Is.EqualTo(ValidationLevel.Structural), "NL should support Structural only");
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldSetBothLevelsToAccountLevel_WhenAccountCheckPerformed()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - GB with successful account check
+        var gbResult = service.ValidateWithAccountCheck("GB33BUKB20201555555555");
+
+        // Assert
+        Assert.That(gbResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "GB supports AccountLevel");
+        Assert.That(gbResult.Level, Is.EqualTo(ValidationLevel.AccountLevel), "Account check was performed");
+
+        // Act - FR with successful BBAN check
+        var frResult = service.ValidateWithAccountCheck("FR1420041010050500013M02606");
+
+        // Assert
+        Assert.That(frResult.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "FR supports AccountLevel");
+        Assert.That(frResult.Level, Is.EqualTo(ValidationLevel.AccountLevel), "BBAN check was performed");
+    }
+
+    #endregion
 }
