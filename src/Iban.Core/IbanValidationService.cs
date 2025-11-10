@@ -28,9 +28,18 @@ public class IbanValidationService : IIbanValidationService
     /// <inheritdoc />
     public ValidationResult Validate(string? iban)
     {
+        // Differentiate between null, empty, and whitespace inputs
+        if (iban is null)
+        {
+            return ValidationResult.Failed(IbanValidationError.ERR_INPUT_NULL, "IBAN cannot be null");
+        }
+        if (iban.Length == 0)
+        {
+            return ValidationResult.Failed(IbanValidationError.ERR_INPUT_EMPTY, "IBAN cannot be empty");
+        }
         if (string.IsNullOrWhiteSpace(iban))
         {
-            return ValidationResult.Failed("ERR_NULL_OR_EMPTY", "IBAN cannot be null or empty");
+            return ValidationResult.Failed(IbanValidationError.ERR_INPUT_WHITESPACE, "IBAN cannot be whitespace only");
         }
 
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
@@ -44,7 +53,7 @@ public class IbanValidationService : IIbanValidationService
             return ValidationResult.Success(country, ValidationLevel.Structural, supportedLevel);
         }
 
-        return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural, supportedLevel);
+        return ValidationResult.Failed(IbanValidationError.ERR_FORMAT_INVALID, result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural, supportedLevel);
     }
 
     /// <inheritdoc />
@@ -92,9 +101,18 @@ public class IbanValidationService : IIbanValidationService
     public ValidationResult ValidateWithAccountCheck(string? iban)
     {
         // First perform structural validation (without BBAN rule)
+        // Differentiate between null, empty, and whitespace inputs
+        if (iban is null)
+        {
+            return ValidationResult.Failed(IbanValidationError.ERR_INPUT_NULL, "IBAN cannot be null");
+        }
+        if (iban.Length == 0)
+        {
+            return ValidationResult.Failed(IbanValidationError.ERR_INPUT_EMPTY, "IBAN cannot be empty");
+        }
         if (string.IsNullOrWhiteSpace(iban))
         {
-            return ValidationResult.Failed("ERR_NULL_OR_EMPTY", "IBAN cannot be null or empty");
+            return ValidationResult.Failed(IbanValidationError.ERR_INPUT_WHITESPACE, "IBAN cannot be whitespace only");
         }
 
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
@@ -108,7 +126,7 @@ public class IbanValidationService : IIbanValidationService
 
         if (!structuralResult.IsValid)
         {
-            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural, supportedLevel);
+            return ValidationResult.Failed(IbanValidationError.ERR_FORMAT_INVALID, structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural, supportedLevel);
         }
 
         // Perform UK modulus checking for GB IBANs
@@ -124,7 +142,7 @@ public class IbanValidationService : IIbanValidationService
             if (!modulusCheckResult)
             {
                 return ValidationResult.Failed(
-                    "ERR_ACCOUNT_INVALID_UK_MODULUS",
+                    IbanValidationError.ERR_ACCOUNT_MODULUS,
                     $"UK IBAN failed modulus checking for sort code {sortCode} and account number {accountNumber}",
                     countryCode,
                     ValidationLevel.AccountLevel,
@@ -143,7 +161,7 @@ public class IbanValidationService : IIbanValidationService
             if (!bbanResult.IsValid)
             {
                 return ValidationResult.Failed(
-                    "ERR_ACCOUNT_INVALID_BBAN",
+                    IbanValidationError.ERR_ACCOUNT_BBAN,
                     $"IBAN failed BBAN national check digit validation: {bbanResult.Error?.ErrorMessage ?? "Unknown error"}",
                     countryCode,
                     ValidationLevel.AccountLevel,

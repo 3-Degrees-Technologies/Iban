@@ -131,12 +131,12 @@ public class IbanValidationServiceTests
         // Act & Assert - Invalid UK IBANs failing modulus check (from IBAN.com test cases)
         var invalidResult1 = service.ValidateWithAccountCheck("GB02BARC20201530093451");
         Assert.That(invalidResult1.IsValid, Is.False, "UK IBAN with invalid modulus should fail");
-        Assert.That(invalidResult1.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"), "Should return UK modulus error code");
+        Assert.That(invalidResult1.ErrorCode, Is.EqualTo(IbanValidationError.ERR_ACCOUNT_MODULUS), "Should return UK modulus error code");
         Assert.That(invalidResult1.ErrorMessage, Is.Not.Null.And.Not.Empty, "Should provide error message");
 
         var invalidResult2 = service.ValidateWithAccountCheck("GB68CITI18500483515538");
         Assert.That(invalidResult2.IsValid, Is.False, "Second UK IBAN with invalid modulus should fail");
-        Assert.That(invalidResult2.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"), "Should return UK modulus error code");
+        Assert.That(invalidResult2.ErrorCode, Is.EqualTo(IbanValidationError.ERR_ACCOUNT_MODULUS), "Should return UK modulus error code");
 
         // Mixed true/false results force real UK modulus checking logic
     }
@@ -171,7 +171,7 @@ public class IbanValidationServiceTests
         // Without BBAN validation implementation, this will incorrectly pass
         var invalidBban = service.ValidateWithAccountCheck("FR2520041010050500013M02699");
         Assert.That(invalidBban.IsValid, Is.False, "IBAN with invalid BBAN check should fail");
-        Assert.That(invalidBban.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_BBAN"), "Should return BBAN error code");
+        Assert.That(invalidBban.ErrorCode, Is.EqualTo(IbanValidationError.ERR_ACCOUNT_BBAN), "Should return BBAN error code");
     }
 
     [Test]
@@ -236,7 +236,7 @@ public class IbanValidationServiceTests
         Assert.That(ukFailed.IsValid, Is.False);
         Assert.That(ukFailed.Country, Is.EqualTo("GB"), "Failed result should include country");
         Assert.That(ukFailed.Level, Is.EqualTo(ValidationLevel.AccountLevel), "Failure occurred at account level");
-        Assert.That(ukFailed.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_UK_MODULUS"));
+        Assert.That(ukFailed.ErrorCode, Is.EqualTo(IbanValidationError.ERR_ACCOUNT_MODULUS));
 
         // Act - Failed BBAN validation
         var frFailed = service.ValidateWithAccountCheck("FR2520041010050500013M02699");
@@ -245,7 +245,7 @@ public class IbanValidationServiceTests
         Assert.That(frFailed.IsValid, Is.False);
         Assert.That(frFailed.Country, Is.EqualTo("FR"), "Failed result should include country");
         Assert.That(frFailed.Level, Is.EqualTo(ValidationLevel.AccountLevel), "Failure occurred at account level");
-        Assert.That(frFailed.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_BBAN"));
+        Assert.That(frFailed.ErrorCode, Is.EqualTo(IbanValidationError.ERR_ACCOUNT_BBAN));
     }
 
     [Test]
