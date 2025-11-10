@@ -8,9 +8,6 @@ public class ValidationResultTests
     {
         // Behavior: ValidationLevel enum should have NotValidated member with value 0
         
-        // Test enum member exists
-        var notValidated = ValidationLevel.NotValidated;
-        
         // Test its integer value is 0 (default/lowest level)
         Assert.That((int)ValidationLevel.NotValidated, Is.EqualTo(0), "NotValidated should have value 0");
         

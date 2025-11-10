@@ -27,7 +27,9 @@ public readonly record struct ValidationResult
     public string? Country { get; init; }
 
     /// <summary>
-    /// Gets the level of validation performed.
+    /// Gets the level of validation that was actually performed on this IBAN.
+    /// This may differ from <see cref="SupportedLevel"/> when partial validation is done.
+    /// For example, structural validation may be performed even when account-level validation is supported.
     /// </summary>
     public ValidationLevel Level { get; init; }
 
