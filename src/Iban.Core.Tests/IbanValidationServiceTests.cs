@@ -15,10 +15,13 @@ public class IbanValidationServiceTests
         Assert.That(service.IsValid("NL91ABNA0417164300"), Is.True, "Valid Netherlands IBAN should return true");
         Assert.That(service.IsValid("GB82WEST12345698765432"), Is.True, "Valid UK IBAN should return true");
         Assert.That(service.IsValid("DE89370400440532013000"), Is.True, "Valid Germany IBAN should return true");
+        Assert.That(service.IsValid("KZ86125KZT5004100100"), Is.True, "Valid Kazakhstan IBAN should return true");
+        Assert.That(service.IsValid("KZ176010251000042993"), Is.True, "Valid Kazakhstan IBAN (alternative format) should return true");
 
         // Act & Assert - Invalid IBANs (bad checksum)
         Assert.That(service.IsValid("NL00ABNA0417164300"), Is.False, "Invalid checksum should return false");
         Assert.That(service.IsValid("GB00WEST12345698765432"), Is.False, "Invalid checksum should return false");
+        Assert.That(service.IsValid("KZ00125KZT5004100100"), Is.False, "Invalid Kazakhstan IBAN checksum should return false");
 
         // Act & Assert - Invalid formats
         Assert.That(service.IsValid(""), Is.False, "Empty string should return false");
@@ -72,6 +75,20 @@ public class IbanValidationServiceTests
         // Assert
         Assert.That(invalidResult.IsValid, Is.False, "Invalid IBAN should have IsValid=false");
         Assert.That(invalidResult.ErrorMessage, Is.Not.Null.And.Not.Empty, "Invalid IBAN should have error message");
+    }
+
+    [Test]
+    public void Validate_ShouldHandleNullInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.Validate(null);
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Null input should return invalid result");
+        Assert.That(result.ErrorMessage, Is.Not.Null.And.Not.Empty, "Null input should have error message");
     }
 
     [Test]
@@ -229,5 +246,33 @@ public class IbanValidationServiceTests
         Assert.That(frFailed.Country, Is.EqualTo("FR"), "Failed result should include country");
         Assert.That(frFailed.Level, Is.EqualTo(ValidationLevel.AccountLevel), "Failure occurred at account level");
         Assert.That(frFailed.ErrorCode, Is.EqualTo("ERR_ACCOUNT_INVALID_BBAN"));
+    }
+
+    [Test]
+    public void ValidateWithAccountCheck_ShouldHandleNullInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var result = service.ValidateWithAccountCheck(null);
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Null input should return invalid result");
+        Assert.That(result.ErrorMessage, Is.Not.Null.And.Not.Empty, "Null input should have error message");
+    }
+
+    [Test]
+    public void TryParse_ShouldHandleNullInput()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act
+        var parseResult = service.TryParse(null, out var parsed);
+
+        // Assert
+        Assert.That(parseResult, Is.False, "Null input should return false");
+        Assert.That(parsed, Is.Null, "Null input should not produce parsed IBAN");
     }
 }
