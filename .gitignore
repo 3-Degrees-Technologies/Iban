@@ -1,10 +1,13 @@
-# Spectrum AI Team - Security
-.spectrum/tokens.env
-.spectrum/team-configured
-.env
-*.key
-*.pem
-.opencode/auth.json
+# Workspace framework (not part of library source)
+.spectrum/
+.tools/
+.opencode/
+docs/
+log_summary/
+opencode.json
+.agent
+AGENTS.md
+DISCOVERY-WORKFLOW.md
 
 # .NET build artifacts
 bin/
@@ -21,3 +24,13 @@ obj/
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Security
+.env
+*.key
+*.pem
+
+# Test results
+TestResults/
+*.trx
+*.coverage
