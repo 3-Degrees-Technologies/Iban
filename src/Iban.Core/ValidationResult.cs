@@ -32,15 +32,23 @@ public readonly record struct ValidationResult
     public ValidationLevel Level { get; init; }
 
     /// <summary>
+    /// Gets the level of validation supported for this IBAN's country.
+    /// Indicates what validation capabilities are available, which may differ from the actual validation performed.
+    /// </summary>
+    public ValidationLevel SupportedLevel { get; init; }
+
+    /// <summary>
     /// Creates a successful validation result.
     /// </summary>
     /// <param name="country">The two-letter ISO country code.</param>
     /// <param name="level">The validation level performed.</param>
-    public static ValidationResult Success(string? country = null, ValidationLevel level = ValidationLevel.Structural) => new()
+    /// <param name="supportedLevel">The validation level supported for this country.</param>
+    public static ValidationResult Success(string? country = null, ValidationLevel level = ValidationLevel.Structural, ValidationLevel supportedLevel = ValidationLevel.Structural) => new()
     {
         IsValid = true,
         Country = country,
-        Level = level
+        Level = level,
+        SupportedLevel = supportedLevel
     };
 
     /// <summary>
@@ -50,13 +58,15 @@ public readonly record struct ValidationResult
     /// <param name="errorMessage">The human-readable error message.</param>
     /// <param name="country">The two-letter ISO country code if parseable.</param>
     /// <param name="level">The validation level at which the failure occurred.</param>
-    public static ValidationResult Failed(string errorCode, string errorMessage, string? country = null, ValidationLevel level = ValidationLevel.Structural) => new()
+    /// <param name="supportedLevel">The validation level supported for this country.</param>
+    public static ValidationResult Failed(string errorCode, string errorMessage, string? country = null, ValidationLevel level = ValidationLevel.Structural, ValidationLevel supportedLevel = ValidationLevel.Structural) => new()
     {
         IsValid = false,
         ErrorCode = errorCode,
         ErrorMessage = errorMessage,
         Country = country,
-        Level = level
+        Level = level,
+        SupportedLevel = supportedLevel
     };
 }
 

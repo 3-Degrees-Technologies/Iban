@@ -37,13 +37,14 @@ public class IbanValidationService : IIbanValidationService
         var result = _validator.Validate(normalized);
 
         var country = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
+        var supportedLevel = GetSupportedValidationLevel(country);
 
         if (result.IsValid)
         {
-            return ValidationResult.Success(country, ValidationLevel.Structural);
+            return ValidationResult.Success(country, ValidationLevel.Structural, supportedLevel);
         }
 
-        return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural);
+        return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", result.Error?.ErrorMessage ?? "IBAN structural validation failed", country, ValidationLevel.Structural, supportedLevel);
     }
 
     /// <inheritdoc />
@@ -103,10 +104,11 @@ public class IbanValidationService : IIbanValidationService
         var structuralResult = basicValidator.Validate(normalized);
 
         var countryCode = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
+        var supportedLevel = GetSupportedValidationLevel(countryCode);
 
         if (!structuralResult.IsValid)
         {
-            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural);
+            return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural, supportedLevel);
         }
 
         // Perform UK modulus checking for GB IBANs
@@ -125,10 +127,11 @@ public class IbanValidationService : IIbanValidationService
                     "ERR_ACCOUNT_INVALID_UK_MODULUS",
                     $"UK IBAN failed modulus checking for sort code {sortCode} and account number {accountNumber}",
                     countryCode,
-                    ValidationLevel.AccountLevel);
+                    ValidationLevel.AccountLevel,
+                    supportedLevel);
             }
 
-            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
+            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel, supportedLevel);
         }
 
         // Perform BBAN validation for supported countries (FR, IT, PT, NO, MC, MR, BA, SM)
@@ -143,13 +146,43 @@ public class IbanValidationService : IIbanValidationService
                     "ERR_ACCOUNT_INVALID_BBAN",
                     $"IBAN failed BBAN national check digit validation: {bbanResult.Error?.ErrorMessage ?? "Unknown error"}",
                     countryCode,
-                    ValidationLevel.AccountLevel);
+                    ValidationLevel.AccountLevel,
+                    supportedLevel);
             }
 
-            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
+            return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel, supportedLevel);
         }
 
         // For other countries, return structural validation success
-        return ValidationResult.Success(countryCode, ValidationLevel.Structural);
+        return ValidationResult.Success(countryCode, ValidationLevel.Structural, supportedLevel);
+    }
+
+    /// <summary>
+    /// Determines the highest level of validation supported for a given country code.
+    /// </summary>
+    /// <param name="countryCode">The two-letter ISO country code.</param>
+    /// <returns>The highest validation level available for this country.</returns>
+    private ValidationLevel GetSupportedValidationLevel(string? countryCode)
+    {
+        if (string.IsNullOrEmpty(countryCode))
+        {
+            return ValidationLevel.NotValidated;
+        }
+
+        // UK supports modulus checking (AccountLevel)
+        if (countryCode == "GB")
+        {
+            return ValidationLevel.AccountLevel;
+        }
+
+        // Countries with BBAN national check digit support (AccountLevel)
+        string[] bbanSupportedCountries = { "FR", "IT", "PT", "NO", "MC", "MR", "BA", "SM" };
+        if (Array.Exists(bbanSupportedCountries, c => c == countryCode))
+        {
+            return ValidationLevel.AccountLevel;
+        }
+
+        // All other countries only support structural validation
+        return ValidationLevel.Structural;
     }
 }
