@@ -229,78 +229,87 @@ fi
 gh_user=$(echo "$gh_auth_status" | awk '/Logged in to github.com account/ {account=$0; sub(/.*account /, "", account); sub(/ \(.*/, "", account)} /Active account: true/ {if(account) {print account; exit}}' || echo "unknown")
 echo -e "${SUCCESS} GitHub CLI authenticated as: ${BLUE}$gh_user${NC}"
 
-# Check SSH key configuration
-echo -e "${WORKING} Checking SSH key configuration..."
+# Check authentication method based on remote URL
+echo -e "${WORKING} Checking authentication method..."
+remote_url=$(git remote get-url origin)
 
-# Check if SSH config exists and has correct settings for github.com
-if [[ ! -f ~/.ssh/config ]]; then
-    echo -e "${ERROR} ${RED}BLOCKING: SSH config file not found${NC}"
-    echo ""
-    echo -e "${INFO} ${YELLOW}SSH configuration required:${NC}"
-    echo "  1. Create ~/.ssh/config with github.com configuration"
-    echo "  2. Ensure SSH key is specified"
-    echo "  3. Rerun pr-ready: ${BLUE}./.tools/commands/pr-ready${NC}"
-    exit 1
-fi
-
-# Check if github.com host is configured correctly
-github_ssh_key=$(grep -A 3 "^Host github.com$" ~/.ssh/config | grep "IdentityFile" | awk '{print $2}' | head -n1)
-
-if [[ -z "$github_ssh_key" ]]; then
-    echo -e "${ERROR} ${RED}BLOCKING: GitHub SSH configuration not found${NC}"
-    echo ""
-    echo -e "${YELLOW}SSH config missing github.com host configuration${NC}"
-    echo ""
-    echo -e "${INFO} ${YELLOW}Required SSH config format:${NC}"
-    echo "Host github.com"
-    echo "   HostName github.com"
-    echo "   User git"
-    echo "   IdentityFile ~/.ssh/id_ed25519_(name)"
-    echo ""
-    echo -e "${INFO} Add this configuration to ~/.ssh/config and rerun pr-ready"
-    exit 1
-fi
-
-# Expand tilde in SSH key path
-expanded_ssh_key="${github_ssh_key/#\~/$HOME}"
-
-# Check if the SSH key file exists
-if [[ ! -f "$expanded_ssh_key" ]]; then
-    echo -e "${ERROR} ${RED}BLOCKING: SSH key file not found${NC}"
-    echo ""
-    echo -e "${YELLOW}SSH key file does not exist: $github_ssh_key${NC}"
-    echo ""
-    echo -e "${INFO} ${YELLOW}To fix SSH key:${NC}"
-    echo "  1. Ensure SSH key exists at: $github_ssh_key"
-    echo "  2. Or update ~/.ssh/config to point to correct key file"
-    echo "  3. Rerun pr-ready: ${BLUE}./.tools/commands/pr-ready${NC}"
-    exit 1
-fi
-
-echo -e "${SUCCESS} SSH key configured: $github_ssh_key"
-
-# Test SSH connection to GitHub
-echo -e "${WORKING} Testing SSH connection to GitHub..."
-ssh_test=$(ssh -T git@github.com 2>&1)
-ssh_exit_code=$?
-
-# SSH to GitHub returns exit code 1 on successful authentication (expected behavior)
-if [[ $ssh_exit_code -eq 1 ]] && [[ "$ssh_test" == *"successfully authenticated"* ]]; then
-    # Extract username from SSH test response
-    ssh_user=$(echo "$ssh_test" | grep "successfully authenticated" | sed 's/.*Hi \([^!]*\)!.*/\1/')
-    echo -e "${SUCCESS} SSH authentication verified as: ${BLUE}$ssh_user${NC}"
+if [[ "$remote_url" == https://* ]]; then
+    echo -e "${SUCCESS} Using HTTPS authentication (GitHub CLI)"
+    echo -e "${INFO} Remote: $remote_url"
 else
-    echo -e "${ERROR} ${RED}BLOCKING: SSH connection to GitHub failed${NC}"
-    echo ""
-    echo -e "${YELLOW}SSH test output:${NC}"
-    echo "$ssh_test"
-    echo ""
-    echo -e "${INFO} ${YELLOW}To fix SSH connection:${NC}"
-    echo "  1. Ensure SSH key is added to GitHub account"
-    echo "  2. Check SSH key permissions: ${BLUE}chmod 600 $github_ssh_key${NC}"
-    echo "  3. Test connection: ${BLUE}ssh -T git@github.com${NC}"
-    echo "  4. Rerun pr-ready: ${BLUE}./.tools/commands/pr-ready${NC}"
-    exit 1
+    # Check SSH key configuration
+    echo -e "${WORKING} Checking SSH key configuration..."
+    
+    # Check if SSH config exists and has correct settings for github.com
+    if [[ ! -f ~/.ssh/config ]]; then
+        echo -e "${ERROR} ${RED}BLOCKING: SSH config file not found${NC}"
+        echo ""
+        echo -e "${INFO} ${YELLOW}SSH configuration required:${NC}"
+        echo "  1. Create ~/.ssh/config with github.com configuration"
+        echo "  2. Ensure SSH key is specified"
+        echo "  3. Rerun pr-ready: ${BLUE}./.tools/commands/pr-ready${NC}"
+        exit 1
+    fi
+    
+    # Check if github.com host is configured correctly
+    github_ssh_key=$(grep -A 3 "^Host github.com$" ~/.ssh/config | grep "IdentityFile" | awk '{print $2}' | head -n1)
+    
+    if [[ -z "$github_ssh_key" ]]; then
+        echo -e "${ERROR} ${RED}BLOCKING: GitHub SSH configuration not found${NC}"
+        echo ""
+        echo -e "${YELLOW}SSH config missing github.com host configuration${NC}"
+        echo ""
+        echo -e "${INFO} ${YELLOW}Required SSH config format:${NC}"
+        echo "Host github.com"
+        echo "   HostName github.com"
+        echo "   User git"
+        echo "   IdentityFile ~/.ssh/id_ed25519_(name)"
+        echo ""
+        echo -e "${INFO} Add this configuration to ~/.ssh/config and rerun pr-ready"
+        exit 1
+    fi
+    
+    # Expand tilde in SSH key path
+    expanded_ssh_key="${github_ssh_key/#\~/$HOME}"
+    
+    # Check if the SSH key file exists
+    if [[ ! -f "$expanded_ssh_key" ]]; then
+        echo -e "${ERROR} ${RED}BLOCKING: SSH key file not found${NC}"
+        echo ""
+        echo -e "${YELLOW}SSH key file does not exist: $github_ssh_key${NC}"
+        echo ""
+        echo -e "${INFO} ${YELLOW}To fix SSH key:${NC}"
+        echo "  1. Ensure SSH key exists at: $github_ssh_key"
+        echo "  2. Or update ~/.ssh/config to point to correct key file"
+        echo "  3. Rerun pr-ready: ${BLUE}./.tools/commands/pr-ready${NC}"
+        exit 1
+    fi
+    
+    echo -e "${SUCCESS} SSH key configured: $github_ssh_key"
+    
+    # Test SSH connection to GitHub
+    echo -e "${WORKING} Testing SSH connection to GitHub..."
+    ssh_test=$(ssh -T git@github.com 2>&1)
+    ssh_exit_code=$?
+    
+    # SSH to GitHub returns exit code 1 on successful authentication (expected behavior)
+    if [[ $ssh_exit_code -eq 1 ]] && [[ "$ssh_test" == *"successfully authenticated"* ]]; then
+        # Extract username from SSH test response
+        ssh_user=$(echo "$ssh_test" | grep "successfully authenticated" | sed 's/.*Hi \([^!]*\)!.*/\1/')
+        echo -e "${SUCCESS} SSH authentication verified as: ${BLUE}$ssh_user${NC}"
+    else
+        echo -e "${ERROR} ${RED}BLOCKING: SSH connection to GitHub failed${NC}"
+        echo ""
+        echo -e "${YELLOW}SSH test output:${NC}"
+        echo "$ssh_test"
+        echo ""
+        echo -e "${INFO} ${YELLOW}To fix SSH connection:${NC}"
+        echo "  1. Ensure SSH key is added to GitHub account"
+        echo "  2. Check SSH key permissions: ${BLUE}chmod 600 $github_ssh_key${NC}"
+        echo "  3. Test connection: ${BLUE}ssh -T git@github.com${NC}"
+        echo "  4. Rerun pr-ready: ${BLUE}./.tools/commands/pr-ready${NC}"
+        exit 1
+    fi
 fi
 
 echo -e "${SUCCESS} Authentication configuration verified"

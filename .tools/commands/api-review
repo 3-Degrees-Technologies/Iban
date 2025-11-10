@@ -20,10 +20,10 @@ API="🔌"
 
 echo -e "${API} ${BLUE}API REVIEW${NC}: Checking for API Code Quality Deadly Sins"
 
-# Check if we're in a Centro project
-if [[ ! -f "Centro.sln" ]]; then
-    echo -e "${ERROR} Not in Centro project root"
-    echo -e "${INFO} Run this command from the Centro solution directory"
+# Check if we're in a .NET project root
+if [[ ! -f "Centro.sln" ]] && [[ ! -f "Iban.sln" ]]; then
+    echo -e "${ERROR} Not in project root"
+    echo -e "${INFO} Run this command from the solution directory"
     exit 1
 fi
 
