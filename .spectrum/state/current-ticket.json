@@ -1,0 +1,16 @@
+{
+  "ticket_id": "IBA-91",
+  "title": "Extend IbanValidationResult with SupportedLevel Property",
+  "description": "## Context",
+  "status": "in_progress",
+  "started_at": "2025-11-10T14:07:35Z",
+  "branch": "feature/IBA-91-extend-ibanvalidationresult-with-supportedlevel-property",
+  "domain": "tickets",
+  "domain_folder": "./tickets",
+  "ticket_doc_path": "./tickets/IBA-91-extend-ibanvalidationresult-with-supportedlevel-property.md",
+  "ticket_original_path": ".spectrum/tmp/discovered-ticket-details.md",
+  "pr_url": null,
+  "tdd_cycles": [],
+  "files_modified": [],
+  "commit_history": []
+}

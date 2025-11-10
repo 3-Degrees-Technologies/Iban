@@ -66,12 +66,17 @@ public readonly record struct ValidationResult
 public enum ValidationLevel
 {
     /// <summary>
+    /// No validation has been performed.
+    /// </summary>
+    NotValidated = 0,
+
+    /// <summary>
     /// Basic structural validation only (format, length, check digits).
     /// </summary>
-    Structural,
+    Structural = 1,
 
     /// <summary>
     /// Account-level validation performed (modulus checking, BBAN validation).
     /// </summary>
-    AccountLevel
+    AccountLevel = 2
 }

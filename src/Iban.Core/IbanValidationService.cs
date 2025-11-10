@@ -97,13 +97,13 @@ public class IbanValidationService : IIbanValidationService
         }
 
         var normalized = iban.Replace(" ", "").Trim().ToUpperInvariant();
-        
+
         // Basic structural validation using simple validator
         var basicValidator = new IbanValidator();
         var structuralResult = basicValidator.Validate(normalized);
-        
+
         var countryCode = normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
-        
+
         if (!structuralResult.IsValid)
         {
             return ValidationResult.Failed("ERR_STRUCTURAL_INVALID", structuralResult.Error?.ErrorMessage ?? "IBAN structural validation failed", countryCode, ValidationLevel.Structural);
@@ -127,7 +127,7 @@ public class IbanValidationService : IIbanValidationService
                     countryCode,
                     ValidationLevel.AccountLevel);
             }
-            
+
             return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
         }
 
@@ -145,7 +145,7 @@ public class IbanValidationService : IIbanValidationService
                     countryCode,
                     ValidationLevel.AccountLevel);
             }
-            
+
             return ValidationResult.Success(countryCode, ValidationLevel.AccountLevel);
         }
 

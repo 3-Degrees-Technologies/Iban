@@ -1,0 +1,20 @@
+{
+  "ticket_id": "IBA-87",
+  "title": "Account-Level IBAN Validation Implementation",
+  "description": "## Slack Messages",
+  "status": "completed",
+  "started_at": "2025-11-07T18:02:11Z",
+  "branch": "feature/IBA-87-account-level-iban-validation-implementation",
+  "domain": "tickets",
+  "domain_folder": "./tickets",
+  "ticket_doc_path": "./tickets/IBA-87-account-level-iban-validation-implementation.md",
+  "ticket_original_path": ".spectrum/tmp/discovered-ticket-details.md",
+  "pr_url": null,
+  "tdd_cycles": [],
+  "files_modified": [],
+  "commit_history": [],
+  "completed_at": "2025-11-07T18:47:27Z",
+  "archived_to": "./tickets/tickets/IBA-87-account-level-iban-validation-implementation.md",
+  "branch_deleted": true,
+  "cleanup_completed": true
+}
