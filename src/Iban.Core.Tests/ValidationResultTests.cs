@@ -40,11 +40,11 @@ public class ValidationResultTests
         Assert.That(successAccountLevel.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "Success should preserve AccountLevel SupportedLevel");
 
         // Test Failed factory with different SupportedLevel values
-        var failedStructural = ValidationResult.Failed("ERR_FORMAT_INVALID", "Invalid format", country: "FR", level: ValidationLevel.Structural, supportedLevel: ValidationLevel.AccountLevel);
+        var failedStructural = ValidationResult.Failed(IbanValidationError.ERR_FORMAT_INVALID, "Invalid format", country: "FR", level: ValidationLevel.Structural, supportedLevel: ValidationLevel.AccountLevel);
         Assert.That(failedStructural.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "Failed should preserve SupportedLevel");
         Assert.That(failedStructural.Level, Is.EqualTo(ValidationLevel.Structural), "Failed validation level should be independent");
 
-        var failedAccountLevel = ValidationResult.Failed("ERR_ACCOUNT_INVALID", "Invalid account", country: "GB", level: ValidationLevel.AccountLevel, supportedLevel: ValidationLevel.AccountLevel);
+        var failedAccountLevel = ValidationResult.Failed(IbanValidationError.ERR_ACCOUNT_BBAN, "Invalid account", country: "GB", level: ValidationLevel.AccountLevel, supportedLevel: ValidationLevel.AccountLevel);
         Assert.That(failedAccountLevel.SupportedLevel, Is.EqualTo(ValidationLevel.AccountLevel), "Failed should preserve AccountLevel SupportedLevel");
 
         // Test that Level (performed) and SupportedLevel (available) can differ

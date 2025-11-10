@@ -14,7 +14,7 @@ public readonly record struct ValidationResult
     /// Gets the error code if validation failed; otherwise, null.
     /// Provides a structured, consistent error key for programmatic handling.
     /// </summary>
-    public string? ErrorCode { get; init; }
+    public IbanValidationError? ErrorCode { get; init; }
 
     /// <summary>
     /// Gets the error message if validation failed; otherwise, null.
@@ -61,7 +61,7 @@ public readonly record struct ValidationResult
     /// <param name="country">The two-letter ISO country code if parseable.</param>
     /// <param name="level">The validation level at which the failure occurred.</param>
     /// <param name="supportedLevel">The validation level supported for this country.</param>
-    public static ValidationResult Failed(string errorCode, string errorMessage, string? country = null, ValidationLevel level = ValidationLevel.Structural, ValidationLevel supportedLevel = ValidationLevel.Structural) => new()
+    public static ValidationResult Failed(IbanValidationError errorCode, string errorMessage, string? country = null, ValidationLevel level = ValidationLevel.Structural, ValidationLevel supportedLevel = ValidationLevel.Structural) => new()
     {
         IsValid = false,
         ErrorCode = errorCode,
