@@ -17,6 +17,7 @@
     <Compile Include="ValidationResult.cs" />
     <Compile Include="ParsedIban.cs" />
     <Compile Include="IbanNormalizer.cs" />
+    <Compile Include="IbanFormatter.cs" />
     <Compile Include="IbanValidationError.cs" />
     <Compile Include="IIbanValidationService.cs" />
     <Compile Include="IbanValidationService.cs" />
