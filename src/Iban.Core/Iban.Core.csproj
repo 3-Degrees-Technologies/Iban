@@ -1,28 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Version>1.0.1</Version>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryUrl>https://github.com/3-Degrees-Technologies/Iban</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IbanNet" Version="5.19.0" />
-    <PackageReference Include="IbanNet.Extensions.Bban" Version="2.1.1" />
-    <PackageReference Include="ModulusChecker.NetCore" Version="2.5.0" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <None Include="logo.png" Pack="true" PackagePath="/" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="ValidationResult.cs" />
-    <Compile Include="ParsedIban.cs" />
-    <Compile Include="IbanNormalizer.cs" />
-    <Compile Include="IbanFormatter.cs" />
-    <Compile Include="IbanValidationError.cs" />
-    <Compile Include="IIbanValidationService.cs" />
-    <Compile Include="IbanValidationService.cs" />
+    <PackageReference Include="IbanNet" Version="6.1.0" />
+    <PackageReference Include="IbanNet.Extensions.Bban" Version="3.0.0" />
+    <PackageReference Include="ModulusChecker.NetCore" Version="2.5.0" />
   </ItemGroup>
 
 </Project>
