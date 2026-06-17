@@ -38,32 +38,35 @@ public class IbanNormalizerTests
     {
         var normalizer = new IbanNormalizer();
 
-        // Test various invalid characters (after normalization removes separators)
-        // Special characters
-        var ex1 = Assert.Throws<ArgumentException>(() => normalizer.Normalize("GB82@WEST12345698765432"));
-        Assert.That(ex1.Message, Does.Contain("@"));
-        Assert.That(ex1.Message.ToLower(), Does.Contain("invalid"));
+        // Asserts Normalize throws ArgumentException whose message contains each fragment.
+        // An explicit Action avoids overload ambiguity between the NUnit
+        // Assert.Throws(Action)/Assert.Throws(TestDelegate) signatures.
+        static void AssertThrowsContaining(IbanNormalizer n, string input, params string[] fragments)
+        {
+            Action act = () => n.Normalize(input);
+            var ex = Assert.Throws<ArgumentException>(act);
+            foreach (var fragment in fragments)
+            {
+                Assert.That(ex!.Message, Does.Contain(fragment));
+            }
+        }
 
-        var ex2 = Assert.Throws<ArgumentException>(() => normalizer.Normalize("DE89#3704$0044%0532"));
-        Assert.That(ex2.Message, Does.Contain("#"));
+        // Special characters
+        AssertThrowsContaining(normalizer, "GB82@WEST12345698765432", "@", "Invalid");
+        AssertThrowsContaining(normalizer, "DE89#3704$0044%0532", "#");
 
         // Punctuation (excluding valid separators)
-        var ex3 = Assert.Throws<ArgumentException>(() => normalizer.Normalize("FR14.2004.1010"));
-        Assert.That(ex3.Message, Does.Contain("."));
-
-        var ex4 = Assert.Throws<ArgumentException>(() => normalizer.Normalize("IT60_X054_2811"));
-        Assert.That(ex4.Message, Does.Contain("_"));
+        AssertThrowsContaining(normalizer, "FR14.2004.1010", ".");
+        AssertThrowsContaining(normalizer, "IT60_X054_2811", "_");
 
         // Non-ASCII characters
-        var ex5 = Assert.Throws<ArgumentException>(() => normalizer.Normalize("NL91ÄBNA0417164300"));
-        Assert.That(ex5.Message, Does.Contain("Ä"));
+        AssertThrowsContaining(normalizer, "NL91ÄBNA0417164300", "Ä");
 
         // Control characters (after normalization - these aren't whitespace)
-        var ex6 = Assert.Throws<ArgumentException>(() => normalizer.Normalize("BE68\u0001539"));
-        Assert.That(ex6.Message, Does.Contain("\u0001"));
+        AssertThrowsContaining(normalizer, "BE68\u0001539", "\u0001");
 
         // Multiple invalid characters - should report first one found
-        Assert.Throws<ArgumentException>(() => normalizer.Normalize("GB82@WEST#1234"));
+        AssertThrowsContaining(normalizer, "GB82@WEST#1234");
 
         // Anti-gaming: Cannot be satisfied with simple character checks - requires actual validation
     }

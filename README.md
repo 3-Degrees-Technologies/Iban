@@ -62,9 +62,9 @@ var validator = new IbanValidationService();
 
 if (validator.TryParse("DE89370400440532013000", out ParsedIban? iban))
 {
-    Console.WriteLine($"Country: {iban.Country}");           // DE
-    Console.WriteLine($"Check Digits: {iban.CheckDigits}");  // 89
-    Console.WriteLine($"BBAN: {iban.Bban}");                 // 370400440532013000
+    Console.WriteLine($"Country: {iban.Value.Country}");           // DE
+    Console.WriteLine($"Check Digits: {iban.Value.CheckDigits}");  // 89
+    Console.WriteLine($"BBAN: {iban.Value.Bban}");                 // 370400440532013000
 }
 ```
 
@@ -141,22 +141,30 @@ public interface IIbanValidationService
 ### ValidationResult
 
 ```csharp
-public class ValidationResult
+public readonly record struct ValidationResult
 {
-    public bool IsValid { get; set; }
-    public string? ErrorMessage { get; set; }
+    public bool IsValid { get; init; }
+    public IbanValidationError? ErrorCode { get; init; }  // structured error code (null when valid)
+    public string? ErrorMessage { get; init; }
+    public string? Country { get; init; }                 // ISO 3166-1 alpha-2 country code
+    public ValidationLevel Level { get; init; }           // validation actually performed
+    public ValidationLevel SupportedLevel { get; init; }  // validation available for this country
+
+    // Instances are produced via the factory methods:
+    public static ValidationResult Success(string? country = null, ...);
+    public static ValidationResult Failed(IbanValidationError errorCode, string errorMessage, ...);
 }
 ```
 
 ### ParsedIban
 
 ```csharp
-public class ParsedIban
+public readonly record struct ParsedIban
 {
-    public string Country { get; }        // ISO 3166-1 alpha-2 country code
-    public string CheckDigits { get; }    // Two-digit check digits
-    public string Bban { get; }           // Basic Bank Account Number
-    // ... additional properties
+    public required string Country { get; init; }        // ISO 3166-1 alpha-2 country code
+    public required string CheckDigits { get; init; }    // Two-digit check digits
+    public required string Bban { get; init; }           // Basic Bank Account Number
+    public required string NormalizedIban { get; init; } // Uppercase, no spaces
 }
 ```
 
@@ -180,13 +188,11 @@ public class PaymentValidator
         // Extract country from IBAN and verify it matches expected country
         if (_validator.TryParse(iban, out ParsedIban? parsed))
         {
-            if (parsed.Country != countryCode)
+            if (parsed!.Value.Country != countryCode)
             {
-                return new ValidationResult
-                {
-                    IsValid = false,
-                    ErrorMessage = "IBAN country code doesn't match beneficiary country"
-                };
+                return ValidationResult.Failed(
+                    IbanValidationError.ERR_FORMAT_COUNTRY_INVALID,
+                    "IBAN country code doesn't match beneficiary country");
             }
         }
 
@@ -213,7 +219,7 @@ public bool IsSepaIban(string iban)
     if (!_validator.TryParse(iban, out ParsedIban? parsed))
         return false;
 
-    return SepaCountries.Contains(parsed.Country);
+    return SepaCountries.Contains(parsed!.Value.Country);
 }
 ```
 

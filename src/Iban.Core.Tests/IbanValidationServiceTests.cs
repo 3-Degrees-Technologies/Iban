@@ -419,6 +419,56 @@ public class IbanValidationServiceTests
         Assert.That(result.ErrorMessage, Is.Not.Null.And.Not.Empty, "Should have error message");
     }
 
+    [Test]
+    public void Validate_ShouldReturnERR_FORMAT_LENGTH_ForWrongLength()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - DE IBAN that is one character too short (21 instead of 22)
+        var result = service.Validate("DE8937040044053201300");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Wrong-length IBAN should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_FORMAT_LENGTH), "Should return ERR_FORMAT_LENGTH");
+    }
+
+    [Test]
+    public void Validate_ShouldReturnERR_FORMAT_CHECKSUM_ForBadCheckDigits()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // Act - structurally well-formed NL IBAN with an invalid MOD-97 checksum
+        var result = service.Validate("NL92ABNA0417164300");
+
+        // Assert
+        Assert.That(result.IsValid, Is.False, "Bad checksum IBAN should be invalid");
+        Assert.That(result.ErrorCode, Is.EqualTo(IbanValidationError.ERR_FORMAT_CHECKSUM), "Should return ERR_FORMAT_CHECKSUM");
+    }
+
+    [Test]
+    public void Validate_ShouldPerformStructuralValidationOnly_NotBbanCheck()
+    {
+        // Arrange
+        var service = new IbanValidationService();
+
+        // A FR IBAN that is structurally valid but fails the national (BBAN) check digit.
+        // Validate() is documented as structural-only, so it must accept it; only
+        // ValidateWithAccountCheck() should reject it at the account level.
+        const string structurallyValidBadBban = "FR2520041010050500013M02699";
+
+        // Act
+        var structural = service.Validate(structurallyValidBadBban);
+        var accountLevel = service.ValidateWithAccountCheck(structurallyValidBadBban);
+
+        // Assert
+        Assert.That(structural.IsValid, Is.True, "Structural validation should pass (BBAN not checked)");
+        Assert.That(structural.Level, Is.EqualTo(ValidationLevel.Structural));
+        Assert.That(accountLevel.IsValid, Is.False, "Account-level validation should fail the BBAN check");
+        Assert.That(accountLevel.ErrorCode, Is.EqualTo(IbanValidationError.ERR_ACCOUNT_BBAN));
+    }
+
     #endregion
 
     #region SupportedLevel Property Tests
