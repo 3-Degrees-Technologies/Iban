@@ -65,8 +65,27 @@ if (validator.TryParse("DE89370400440532013000", out ParsedIban? iban))
     Console.WriteLine($"Country: {iban.Value.Country}");           // DE
     Console.WriteLine($"Check Digits: {iban.Value.CheckDigits}");  // 89
     Console.WriteLine($"BBAN: {iban.Value.Bban}");                 // 370400440532013000
+    Console.WriteLine($"Bank: {iban.Value.BankCode}");             // 37040044  (the BLZ)
+    Console.WriteLine($"Identifier: {iban.Value.BankIdentifier}"); // 37040044
 }
 ```
+
+### Bank and branch identifiers
+
+`ParsedIban` also exposes the bank and branch sections the IBAN registry defines for the country,
+read from the registry's positions rather than assumed to start the BBAN:
+
+| IBAN | `BankCode` | `BranchCode` | `BankIdentifier` |
+|---|---|---|---|
+| `DE89 3704 0044 …` | `37040044` (BLZ) | — | `37040044` |
+| `GB29 NWBK 6016 13 …` | `NWBK` | `601613` (sort code) | `NWBK601613` |
+| `IT60 X054 2811 101 …` | `05428` (ABI, after the CIN) | `11101` (CAB) | `0542811101` |
+| `PL61 1090 1014 …` | — | `10901014` (routing number) | `10901014` |
+
+`BankIdentifier` is the contiguous span a bank directory is keyed on — bank and branch together where
+both exist, whichever exists otherwise. It tells you **where** the identifier is, not whether the bank
+exists: resolving it to a name or a BIC is a lookup against data that changes (a registry snapshot, a
+provider's directory) and is deliberately left to the caller.
 
 ### Advanced Validation with Account Checking
 

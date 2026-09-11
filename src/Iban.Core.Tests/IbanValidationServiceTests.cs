@@ -554,3 +554,53 @@ public class IbanValidationServiceTests
 
     #endregion
 }
+
+[TestFixture]
+public class ParsedIbanBankIdentifierTests
+{
+    // country, iban, bank code, branch code, identifier (the contiguous span a bank directory keys on)
+    [TestCase("DE", "DE89370400440532013000", "37040044", null, "37040044")]              // BLZ
+    [TestCase("NL", "NL91ABNA0417164300", "ABNA", null, "ABNA")]
+    [TestCase("NO", "NO9386011117947", "8601", null, "8601")]
+    [TestCase("GB", "GB29NWBK60161331926819", "NWBK", "601613", "NWBK601613")]          // bank + sort code
+    [TestCase("FR", "FR1420041010050500013M02606", "20041", "01005", "2004101005")]      // banque + guichet
+    [TestCase("PT", "PT50000201231234567890154", "0002", "0123", "00020123")]
+    [TestCase("IT", "IT60X0542811101000000123456", "05428", "11101", "0542811101")]       // ABI + CAB, AFTER the CIN
+    [TestCase("PL", "PL61109010140000071219812874", null, "10901014", "10901014")]        // registry models PL's routing number as a branch
+    public void TryParse_ExposesTheBankAndBranchIdentifiersTheRegistryDefines(
+        string country, string iban, string? bank, string? branch, string identifier)
+    {
+        var service = new IbanValidationService();
+
+        var ok = service.TryParse(iban, out var parsed);
+
+        Assert.That(ok, Is.True);
+        Assert.That(parsed!.Value.Country, Is.EqualTo(country));
+        Assert.That(parsed.Value.BankCode, Is.EqualTo(bank));
+        Assert.That(parsed.Value.BranchCode, Is.EqualTo(branch));
+        Assert.That(parsed.Value.BankIdentifier, Is.EqualTo(identifier),
+            "the span a bank directory is keyed on: bank and branch together where both exist, whichever exists otherwise");
+    }
+
+    [Test]
+    public void TryParse_BankIdentifierIsTakenFromTheNormalizedIban()
+    {
+        // Spaces and case must not shift the registry positions.
+        var service = new IbanValidationService();
+
+        service.TryParse("it60 x054 2811 1010 0000 0123 456", out var parsed);
+
+        Assert.That(parsed!.Value.BankIdentifier, Is.EqualTo("0542811101"));
+    }
+
+    [Test]
+    public void TryParse_StillRefusesAnInvalidIbanRatherThanGuessingABank()
+    {
+        var service = new IbanValidationService();
+
+        var ok = service.TryParse("DE00370400440532013000", out var parsed);
+
+        Assert.That(ok, Is.False, "wrong check digits");
+        Assert.That(parsed, Is.Null);
+    }
+}
