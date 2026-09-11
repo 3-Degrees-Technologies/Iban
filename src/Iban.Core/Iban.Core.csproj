@@ -5,11 +5,28 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Version>1.1.0</Version>
+
+    <!-- NuGet listing. The description is what nuget.org shows under the package name; 1.0.x
+         shipped the SDK placeholder "Package Description". -->
+    <Authors>3 Degrees Technologies</Authors>
+    <Company>3 Degrees Technologies</Company>
+    <Description>IBAN validation and parsing for .NET: format, length, MOD-97 and national check digits (via IbanNet), UK modulus checking, and the IBAN registry's bank and branch identifiers. Structural only — it says where a bank identifier is, not whether the bank exists.</Description>
+    <PackageTags>iban;bban;validation;payments;banking;sepa;swift;modulus</PackageTags>
+    <PackageProjectUrl>https://github.com/3-Degrees-Technologies/Iban</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryUrl>https://github.com/3-Degrees-Technologies/Iban</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+
+    <!-- Ship the XML docs so consumers get IntelliSense for ParsedIban and the validation
+         results; without this the package carried no documentation file at all. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Symbols as a separate .snupkg so stack traces through the package resolve. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
