@@ -24,4 +24,36 @@ public readonly record struct ParsedIban
     /// Gets the normalized IBAN (uppercase, no spaces).
     /// </summary>
     public required string NormalizedIban { get; init; }
+
+    /// <summary>
+    /// Gets the bank code the IBAN registry defines for this country — a German BLZ, a Dutch
+    /// four-letter code, an Italian ABI — or null where the registry defines no bank section
+    /// (Poland models its whole routing number as a branch; see <see cref="BranchCode"/>).
+    /// Read from the normalized IBAN at the registry's position, which is not always the
+    /// start of the BBAN: Italy's ABI follows a check character.
+    /// </summary>
+    public string? BankCode { get; init; }
+
+    /// <summary>
+    /// Gets the branch code the IBAN registry defines for this country — a UK sort code, an
+    /// Italian CAB, a French guichet, Poland's eight-digit routing number — or null where the
+    /// registry defines no branch section.
+    /// </summary>
+    public string? BranchCode { get; init; }
+
+    /// <summary>
+    /// Gets the contiguous span that identifies the institution and branch: the part of the IBAN
+    /// a bank directory is keyed on. Bank and branch together where the registry defines both
+    /// (GB: <c>NWBK601613</c>, IT: ABI+CAB), whichever exists otherwise (DE: the BLZ, PL: the
+    /// routing number). Null only when the registry defines neither.
+    /// <para>This is structure, not identity: it says WHERE the identifier is, not whether the
+    /// bank exists. Resolving it to a name or a BIC is a lookup against data that changes —
+    /// a registry snapshot or a provider's live directory — and belongs to the caller.</para>
+    /// <para>Positions come from IbanNet's registry as shipped, quirks included: Albania's branch
+    /// section sits inside its bank section (the span is the 8-digit identifier, as it should be),
+    /// and Jordan's registry entry places bank and branch at the same offset, so both properties
+    /// read the same four characters there. Checked across all 88 countries: no other overlap,
+    /// no section out of range, none with neither.</para>
+    /// </summary>
+    public string? BankIdentifier { get; init; }
 }

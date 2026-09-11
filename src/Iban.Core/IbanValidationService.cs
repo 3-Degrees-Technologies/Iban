@@ -1,4 +1,5 @@
 using IbanNet;
+using IbanNet.Registry;
 using IbanNet.Extensions.Bban.Validation.Rules;
 using IbanNet.Validation.Results;
 using ModulusChecking;
@@ -99,12 +100,16 @@ public class IbanValidationService : IIbanValidationService
 
         if (result.IsValid && normalized.Length >= 4)
         {
+            var (bank, branch, identifier) = ReadBankSections(normalized);
             parsedIban = new ParsedIban
             {
                 Country = normalized.Substring(0, 2),
                 CheckDigits = normalized.Substring(2, 2),
                 Bban = normalized.Substring(4),
-                NormalizedIban = normalized
+                NormalizedIban = normalized,
+                BankCode = bank,
+                BranchCode = branch,
+                BankIdentifier = identifier
             };
             return true;
         }
@@ -203,6 +208,43 @@ public class IbanValidationService : IIbanValidationService
     /// <summary>
     /// Extracts the two-letter country code from a normalized IBAN, or null if too short.
     /// </summary>
+    /// <summary>
+    /// Reads the bank and branch sections the IBAN registry defines for the IBAN's country, and the
+    /// contiguous identifier span they form. Positions are absolute within the IBAN and are taken
+    /// from the registry rather than assumed to start the BBAN — Italy's bank code follows a check
+    /// character, and Poland's registry entry has no bank section at all, only a branch.
+    /// A section with length zero is one the registry does not define.
+    /// </summary>
+    private static (string? Bank, string? Branch, string? Identifier) ReadBankSections(string normalizedIban)
+    {
+        if (!IbanRegistry.Default.TryGetValue(normalizedIban.Substring(0, 2), out var country))
+        {
+            return (null, null, null);
+        }
+
+        var bank = Section(normalizedIban, country.Bank.Position, country.Bank.Length);
+        var branch = Section(normalizedIban, country.Branch.Position, country.Branch.Length);
+
+        string? identifier = (bank, branch) switch
+        {
+            (null, null) => null,
+            (not null, null) => bank,
+            (null, not null) => branch,
+            _ => Section(
+                normalizedIban,
+                Math.Min(country.Bank.Position, country.Branch.Position),
+                Math.Max(country.Bank.Position + country.Bank.Length, country.Branch.Position + country.Branch.Length)
+                    - Math.Min(country.Bank.Position, country.Branch.Position)),
+        };
+
+        return (bank, branch, identifier);
+    }
+
+    private static string? Section(string iban, int position, int length) =>
+        length > 0 && position >= 0 && position + length <= iban.Length
+            ? iban.Substring(position, length)
+            : null;
+
     private static string? ExtractCountry(string normalized) =>
         normalized.Length >= 2 ? normalized.Substring(0, 2) : null;
 
